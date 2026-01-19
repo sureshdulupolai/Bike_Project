@@ -12,6 +12,7 @@ import VerifyOTP from './pages/auth/VerifyOTP';
 import Vehicles from './pages/Vehicles';
 import VehicleDetail from './pages/VehicleDetail';
 import Profile from './pages/Profile';
+import NotFoundPage from './pages/NotFoundPage';
 
 // Customer Pages
 import CustomerDashboard from './pages/customer/Dashboard';
@@ -53,6 +54,9 @@ function App() {
         <Route path="/admin/sales" element={<AdminSales />} />
         <Route path="/admin/services" element={<AdminServices />} />
         <Route path="/admin/reports" element={<AdminReports />} />
+
+        {/* 404 - Catch all undefined routes */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
       <ToastContainer
         position="top-right"
