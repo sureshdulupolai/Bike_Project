@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bike, ShoppingCart, Wrench, TrendingUp } from 'lucide-react';
+import {
+  Bike,
+  ShoppingCart,
+  Wrench,
+  TrendingUp,
+  Clock
+} from 'lucide-react';
+
 import Layout from '../../components/Layout/Layout';
 import Card from '../../components/UI/Card';
 import Loading from '../../components/UI/Loading';
 import ProtectedRoute from '../../components/ProtectedRoute';
+
 import { salesService } from '../../services/salesService';
 import { serviceService } from '../../services/serviceService';
 import { vehicleService } from '../../services/vehicleService';
@@ -35,7 +43,7 @@ const Dashboard = () => {
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
-        setStats({ ...stats, loading: false });
+        setStats((prev) => ({ ...prev, loading: false }));
       }
     };
 
@@ -59,6 +67,7 @@ const Dashboard = () => {
       icon: ShoppingCart,
       color: 'primary',
       link: '/customer/purchases',
+      desc: 'Total vehicles you purchased',
     },
     {
       title: 'My Services',
@@ -66,6 +75,7 @@ const Dashboard = () => {
       icon: Wrench,
       color: 'success',
       link: '/customer/services',
+      desc: 'Completed & ongoing services',
     },
     {
       title: 'Available Vehicles',
@@ -73,6 +83,7 @@ const Dashboard = () => {
       icon: Bike,
       color: 'info',
       link: '/vehicles',
+      desc: 'Vehicles you can explore',
     },
   ];
 
@@ -83,45 +94,109 @@ const Dashboard = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.4 }}
           >
-            <h1 className="mb-4">Customer Dashboard</h1>
-            <p className="text-muted mb-4">Welcome back! Here's your overview.</p>
+            {/* HEADER */}
+            <div className="mb-5">
+              <h1 className="fw-bold mb-1">Customer Dashboard</h1>
+              <p className="text-muted">
+                Manage your purchases, services and explore vehicles easily.
+              </p>
+            </div>
 
+            {/* STATS CARDS */}
             <div className="row g-4 mb-5">
               {statCards.map((stat, index) => (
                 <motion.div
                   key={index}
                   className="col-md-4"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ y: -6 }}
+                  transition={{ type: 'spring', stiffness: 200 }}
                 >
                   <Link to={stat.link} className="text-decoration-none">
-                    <Card className="h-100 text-center p-4">
-                      <stat.icon size={48} className={`text-${stat.color} mb-3`} />
-                      <h3 className="fw-bold">{stat.value}</h3>
-                      <p className="text-muted mb-0">{stat.title}</p>
+                    <Card className="h-100 p-4 border-0 shadow-sm">
+                      <div className="d-flex justify-content-between align-items-center mb-3">
+                        <div
+                          className={`p-3 rounded-circle bg-${stat.color} bg-opacity-10`}
+                        >
+                          <stat.icon
+                            size={26}
+                            className={`text-${stat.color}`}
+                          />
+                        </div>
+                        <h2 className="fw-bold mb-0">{stat.value}</h2>
+                      </div>
+
+                      <h6 className="fw-semibold mb-1">{stat.title}</h6>
+                      <p className="text-muted small mb-0">{stat.desc}</p>
                     </Card>
                   </Link>
                 </motion.div>
               ))}
             </div>
 
-            <div className="row">
+            {/* QUICK ACTIONS + INSIGHTS */}
+            <div className="row mb-5">
               <div className="col-md-6 mb-4">
-                <Card className="p-4">
-                  <h5 className="mb-3">Quick Actions</h5>
-                  <div className="d-grid gap-2">
+                <Card className="p-4 h-100">
+                  <h5 className="fw-semibold mb-3">Quick Actions</h5>
+                  <div className="d-grid gap-3">
                     <Link to="/vehicles" className="btn btn-primary">
-                      <Bike className="me-2" size={18} />
+                      <Bike size={18} className="me-2" />
                       Browse Vehicles
                     </Link>
-                    <Link to="/customer/services" className="btn btn-outline-success">
-                      <Wrench className="me-2" size={18} />
-                      Book Service
+                    <Link
+                      to="/customer/services"
+                      className="btn btn-outline-success"
+                    >
+                      <Wrench size={18} className="me-2" />
+                      Book a Service
                     </Link>
                   </div>
+                </Card>
+              </div>
+
+              <div className="col-md-6 mb-4">
+                <Card className="p-4 h-100 bg-light border-0">
+                  <h5 className="fw-semibold mb-3">Insights</h5>
+                  <ul className="list-unstyled mb-0 text-muted small">
+                    <li className="mb-2 d-flex align-items-center">
+                      <TrendingUp size={16} className="me-2 text-success" />
+                      You’ve completed {stats.services} services so far
+                    </li>
+                    <li className="mb-2 d-flex align-items-center">
+                      <Bike size={16} className="me-2 text-primary" />
+                      New vehicles are added regularly
+                    </li>
+                    <li className="d-flex align-items-center">
+                      <Clock size={16} className="me-2 text-warning" />
+                      Timely service improves vehicle life
+                    </li>
+                  </ul>
+                </Card>
+              </div>
+            </div>
+
+            {/* RECENT ACTIVITY (STRUCTURE READY) */}
+            <div className="row">
+              <div className="col-12">
+                <Card className="p-4">
+                  <h5 className="fw-semibold mb-3">Recent Activity</h5>
+
+                  <div className="text-muted small">
+                    <div className="d-flex align-items-center mb-2">
+                      <ShoppingCart size={16} className="me-2" />
+                      Recent purchases will appear here
+                    </div>
+                    <div className="d-flex align-items-center">
+                      <Wrench size={16} className="me-2" />
+                      Recent service bookings will appear here
+                    </div>
+                  </div>
+
+                  <p className="text-muted fst-italic mt-3 mb-0">
+                    Detailed activity tracking coming soon.
+                  </p>
                 </Card>
               </div>
             </div>
