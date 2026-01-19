@@ -40,7 +40,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return ServiceRequestCreateSerializer
         elif self.action == 'list':
-            return ServiceRequestListSerializer
+            return ServiceRequestSerializer   
         elif self.action == 'update' or self.action == 'partial_update':
             return ServiceRequestUpdateSerializer
         return ServiceRequestSerializer
