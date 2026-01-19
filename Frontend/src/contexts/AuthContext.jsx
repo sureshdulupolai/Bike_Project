@@ -57,7 +57,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.register(userData);
       toast.success('Registration successful! Please verify your email with OTP.');
-      return { success: true, data: response };
+      // Return both success flag and otp from backend response
+      return { 
+        success: true, 
+        data: response,
+        otp: response.otp  // OTP sent from backend
+      };
     } catch (error) {
       const message = error.response?.data?.error || error.response?.data?.detail || 'Registration failed';
       toast.error(message);

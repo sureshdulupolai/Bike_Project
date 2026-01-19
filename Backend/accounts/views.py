@@ -15,6 +15,7 @@ from .permissions import IsAdmin
 from django.utils import timezone
 from datetime import timedelta
 import random
+from django.db import IntegrityError, transaction
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -23,8 +24,24 @@ class RegisterView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, context={'admin': False})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()  # customer
+        try:
+            serializer.is_valid(raise_exception=True)
+            # Wrap save in a transaction to surface IntegrityError for unique constraints
+            with transaction.atomic():
+                user = serializer.save()  # customer
+
+        except IntegrityError:
+            return Response({
+                "success": False,
+                "error": "A user with this email or mobile already exists. If you haven't verified, try resending OTP or use a different email/mobile."
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            # serializer.is_valid will already raise ValidationError for known issues.
+            # Catch-all for unexpected exceptions.
+            return Response({
+                "success": False,
+                "error": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({
             "success": True,

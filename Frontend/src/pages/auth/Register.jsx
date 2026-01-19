@@ -5,6 +5,7 @@ import { Bike, User, Mail, Phone, Lock, ArrowLeft } from 'lucide-react';
 import Button from '../../components/UI/Button';
 import PublicRoute from '../../components/PublicRoute';
 import { useAuth } from '../../contexts/AuthContext';
+import emailjs from '@emailjs/browser';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -47,41 +48,52 @@ const Register = () => {
       const result = await register(formData);
 
       if (!result || result.success !== true) {
-        throw new Error(result?.message || 'Registration failed');
+        throw new Error(result?.error || 'Registration failed');
       }
 
       // Save pending verification email
       localStorage.setItem('pending_verification_email', formData.email);
 
-      // ✅ Send OTP via EmailJS
-      await emailjs.send(
-        "service_5bm58np",
-        "template_1v2c0p9",
-        {
-          to_email: formData.email,
-          name: formData.name,
-          message: `Your OTP is: ${result.otp}`,  // ← use backend OTP
-        },
-        "wtfODQiMYk4i24OWU"
-      );
+      // ✅ Send OTP via EmailJS - OTP is in result.otp (returned from AuthContext)
+      const otp = result.otp;
+      if (otp) {
+        await emailjs.send(
+          "service_5bm58np",
+          "template_1v2c0p9",
+          {
+            to_email: formData.email,
+            name: formData.name,
+            message: `Your OTP is: ${otp}`,
+          },
+          "wtfODQiMYk4i24OWU"
+        );
+      }
 
       showAlert(
         'success',
-        'OTP sent successfully. Please check your email.'
+        'Registration successful! Please verify your email with OTP.'
       );
 
       setTimeout(() => navigate('/verify-otp'), 1200);
 
     } catch (error) {
-        console.error(error.response?.data || error);
+        console.error('Registration error:', error);
 
         let message = 'Registration failed. Try again.';
 
-        if (error.response && error.response.data) {
-          // Flatten backend validation errors
-          message = Object.values(error.response.data)
-            .flat()
-            .join(' ');
+        // Handle API response errors
+        if (error.response?.data) {
+          const data = error.response.data;
+          if (data.error) {
+            message = data.error;
+          } else if (data.message) {
+            message = data.message;
+          } else {
+            // Flatten validation errors
+            message = Object.values(data)
+              .flat()
+              .join(' ');
+          }
         }
 
         showAlert('error', message);

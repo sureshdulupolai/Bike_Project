@@ -6,6 +6,8 @@ from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from datetime import timedelta
 import random
+from django.db import transaction
+from django.db.models import Q
 from .models import User, OTP
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -29,14 +31,16 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         required=True,
         style={'input_type': 'password'}
     )
+    # Declare email/mobile explicitly to avoid ModelSerializer adding UniqueValidator
+    email = serializers.EmailField(required=True)
+    mobile = serializers.CharField(required=True, max_length=15)
     
     class Meta:
         model = User
         fields = ['id', 'name', 'email', 'mobile', 'password', 'password_confirm', 'role']
         extra_kwargs = {
             'name': {'required': True},
-            'email': {'required': True},
-            'mobile': {'required': True},
+            # email/mobile declared above
         }
 
     def validate(self, attrs):
@@ -66,14 +70,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         email = validated_data['email']
         mobile = validated_data['mobile']
 
-        # ✅ Delete unverified duplicates and their OTPs
-        unverified_users = User.objects.filter(
-            (models.Q(email=email) | models.Q(mobile=mobile)),
-            is_verified=False
-        )
-        for user in unverified_users:
-            OTP.objects.filter(user=user).delete()
-            user.delete()
+        # Delete any existing unverified users that match email or mobile (cleanup duplicates)
+        with transaction.atomic():
+            unverified_users = User.objects.filter(
+                Q(email=email) | Q(mobile=mobile),
+                is_verified=False
+            )
+            if unverified_users.exists():
+                OTP.objects.filter(user__in=unverified_users).delete()
+                unverified_users.delete()
 
         if admin:
             validated_data['role'] = 'admin'
@@ -89,7 +94,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
             user = User.objects.create_user(password=password, **validated_data)
 
-            # Generate OTP
+            # Generate OTP for new customer
             otp_code = str(random.randint(100000, 999999))
             expires_at = timezone.now() + timedelta(minutes=1)
 
