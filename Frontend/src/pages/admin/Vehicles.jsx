@@ -13,8 +13,13 @@ import VehicleModal from '../../components/admin/VehicleModal';
 const Vehicles = () => {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+
+  const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
+
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [stockModal, setStockModal] = useState(null);
+  const [stockQty, setStockQty] = useState('');
 
   useEffect(() => {
     fetchVehicles();
@@ -22,77 +27,74 @@ const Vehicles = () => {
 
   const fetchVehicles = async () => {
     try {
-      const response = await vehicleService.getAll();
-      setVehicles(response.results || []);
-    } catch (error) {
-      console.error('Error fetching vehicles:', error);
+      const res = await vehicleService.getAll();
+      setVehicles(res.results || []);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this vehicle?')) {
-      return;
-    }
-
+  const deleteVehicle = async () => {
     try {
-      await vehicleService.delete(id);
-      toast.success('Vehicle deleted successfully');
+      await vehicleService.delete(confirmDelete.id);
+      toast.success('Vehicle deleted');
+      setConfirmDelete(null);
       fetchVehicles();
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to delete vehicle');
+    } catch {
+      toast.error('Delete failed');
     }
   };
 
-  const handleUpdateStock = async (id, quantity, action) => {
+  const updateStock = async () => {
     try {
-      await vehicleService.updateStock(id, quantity, action);
-      toast.success('Stock updated successfully');
+      await vehicleService.updateStock(
+        stockModal.id,
+        parseInt(stockQty),
+        stockModal.action
+      );
+      toast.success('Stock updated');
+      setStockModal(null);
+      setStockQty('');
       fetchVehicles();
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to update stock');
+    } catch {
+      toast.error('Stock update failed');
     }
-  };
-
-  const handleModalClose = () => {
-    setShowModal(false);
-    setEditingVehicle(null);
-    fetchVehicles();
   };
 
   if (loading) {
     return (
       <ProtectedRoute requireAdmin>
-        <Layout>
-          <Loading />
-        </Layout>
+        <Layout><Loading /></Layout>
       </ProtectedRoute>
     );
   }
 
   return (
+    <>
     <ProtectedRoute requireAdmin>
       <Layout>
         <div className="container my-5">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
           >
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <div className="d-flex align-items-center">
-                <Bike size={32} className="me-3 text-primary" />
+
+            {/* Header */}
+            <div className="d-flex justify-content-between align-items-center mb-5">
+              <div className="d-flex align-items-center gap-3">
+                <Bike size={34} className="text-primary" />
                 <div>
-                  <h1 className="mb-0">Manage Vehicles</h1>
-                  <p className="text-muted mb-0">Add, edit, and manage vehicle inventory</p>
+                  <h2 className="mb-0">Vehicle Inventory</h2>
+                  <p className="text-muted mb-0">Manage stock & pricing</p>
                 </div>
               </div>
               <Button
                 variant="primary"
                 onClick={() => {
                   setEditingVehicle(null);
-                  setShowModal(true);
+                  setShowVehicleModal(true);
                 }}
               >
                 <Plus size={18} className="me-2" />
@@ -100,102 +102,167 @@ const Vehicles = () => {
               </Button>
             </div>
 
-            {vehicles.length === 0 ? (
-              <Card className="text-center p-5">
-                <Bike size={64} className="text-muted mb-3" />
-                <h5>No vehicles</h5>
-                <p className="text-muted">Add your first vehicle to get started</p>
-              </Card>
-            ) : (
-              <div className="row g-4">
-                {vehicles.map((vehicle, index) => (
-                  <motion.div
-                    key={vehicle.id}
-                    className="col-md-6 col-lg-4"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <Card>
-                      {vehicle.image && (
-                        <img
-                          src={vehicle.image}
-                          className="card-img-top"
-                          alt={vehicle.brand}
-                          style={{ height: '200px', objectFit: 'cover' }}
-                        />
-                      )}
-                      <div className="card-body">
-                        <h5 className="card-title">
-                          {vehicle.brand} {vehicle.model}
-                        </h5>
-                        <p className="card-text">
-                          <strong>Price:</strong> ₹{parseFloat(vehicle.price).toLocaleString()}
-                        </p>
-                        <p className="card-text">
-                          <strong>Stock:</strong> {vehicle.stock_qty} units
-                        </p>
-                        <div className="d-flex gap-2 mb-3">
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            onClick={() => {
-                              const qty = prompt('Enter quantity to add:');
-                              if (qty) handleUpdateStock(vehicle.id, parseInt(qty), 'add');
-                            }}
-                          >
-                            <Package size={16} className="me-1" />
-                            Add Stock
-                          </Button>
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            onClick={() => {
-                              const qty = prompt('Enter quantity to reduce:');
-                              if (qty) handleUpdateStock(vehicle.id, parseInt(qty), 'reduce');
-                            }}
-                          >
-                            Reduce Stock
-                          </Button>
-                        </div>
-                        <div className="d-flex gap-2">
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => {
-                              setEditingVehicle(vehicle);
-                              setShowModal(true);
-                            }}
-                          >
-                            <Edit size={16} className="me-1" />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => handleDelete(vehicle.id)}
-                          >
-                            <Trash2 size={16} className="me-1" />
-                            Delete
-                          </Button>
-                        </div>
+            {/* Vehicle Cards */}
+            <div className="row g-4">
+              {vehicles.map((v, i) => (
+                <motion.div
+                  key={v.id}
+                  className="col-md-6 col-lg-4"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  <Card className="h-100 overflow-hidden">
+                    {v.image && (
+                      <img
+                        src={v.image}
+                        alt={v.model}
+                        style={{ height: 200, objectFit: 'cover' }}
+                      />
+                    )}
+                    <div className="p-3">
+                      <h5>{v.brand} {v.model}</h5>
+                      <p className="mb-1">₹ {Number(v.price).toLocaleString()}</p>
+                      <p className="text-muted small">
+                        Stock: <strong>{v.stock_qty}</strong>
+                      </p>
+
+                      <div className="d-flex gap-2 mb-3">
+                        <Button
+                          size="sm"
+                          variant="outline-primary"
+                          onClick={() =>
+                            setStockModal({ id: v.id, action: 'add' })
+                          }
+                        >
+                          <Package size={15} /> Add
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline-secondary"
+                          onClick={() =>
+                            setStockModal({ id: v.id, action: 'reduce' })
+                          }
+                        >
+                          Reduce
+                        </Button>
                       </div>
-                    </Card>
-                  </motion.div>
-                ))}
-              </div>
-            )}
+
+                      <div className="d-flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => {
+                            setEditingVehicle(v);
+                            setShowVehicleModal(true);
+                          }}
+                        >
+                          <Edit size={15} /> Edit
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => setConfirmDelete(v)}
+                        >
+                          <Trash2 size={15} /> Delete
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
         </div>
 
-        {showModal && (
+        {/* Delete Confirm Modal */}
+        {confirmDelete && (
+          <div className="modal-backdrop-custom">
+            <div className="modal-box">
+              <h5>Delete Vehicle?</h5>
+              <p className="text-muted">
+                {confirmDelete.brand} {confirmDelete.model} will be removed.
+              </p>
+              <div className="d-flex justify-content-end gap-2">
+                <Button variant="secondary" onClick={() => setConfirmDelete(null)}>
+                  Cancel
+                </Button>
+                <Button variant="danger" onClick={deleteVehicle}>
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Stock Modal */}
+        {stockModal && (
+          <div className="modal-backdrop-custom">
+            <div className="modal-box">
+              <h5>
+                {stockModal.action === 'add' ? 'Add Stock' : 'Reduce Stock'}
+              </h5>
+
+              <input
+                type="number"
+                className="form-control my-3"
+                placeholder="Enter quantity"
+                value={stockQty}
+                onChange={(e) => setStockQty(e.target.value)}
+              />
+
+              <div className="d-flex justify-content-end gap-2">
+                <Button variant="secondary" onClick={() => setStockModal(null)}>
+                  Cancel
+                </Button>
+                <Button variant="primary" onClick={updateStock}>
+                  Update
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Vehicle Add/Edit Modal */}
+        {showVehicleModal && (
           <VehicleModal
             vehicle={editingVehicle}
-            onClose={handleModalClose}
+            onClose={() => {
+              setShowVehicleModal(false);
+              setEditingVehicle(null);
+              fetchVehicles();
+            }}
           />
         )}
       </Layout>
     </ProtectedRoute>
+
+    <style>
+      {`
+        .modal-backdrop-custom {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-box {
+  background: #fff;
+  padding: 25px;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+
+      `}
+    </style>
+    </>
   );
 };
 

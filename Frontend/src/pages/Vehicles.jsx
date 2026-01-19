@@ -25,10 +25,10 @@ const Vehicles = () => {
       if (filterBrand) params.brand = filterBrand;
       if (searchTerm) params.search = searchTerm;
 
-      const response = await vehicleService.getAll(params);
-      setVehicles(response.results || []);
-    } catch (error) {
-      console.error('Error fetching vehicles:', error);
+      const res = await vehicleService.getAll(params);
+      setVehicles(res.results || []);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -51,100 +51,113 @@ const Vehicles = () => {
     <Layout>
       <div className="container my-5">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
         >
-          <div className="d-flex justify-content-between align-items-center mb-4">
+
+          {/* Page Header */}
+          <div className="vehicles-header mb-5">
             <div>
-              <h1 className="mb-2">Available Vehicles</h1>
-              <p className="text-muted">Browse our collection of 2-wheelers</p>
+              <h1 className="mb-1">Available Vehicles</h1>
+              <p className="text-muted mb-0">
+                Choose your next ride from our collection
+              </p>
             </div>
           </div>
 
-          <div className="row mb-4">
-            <div className="col-md-8">
-              <form onSubmit={handleSearch} className="d-flex gap-2">
-                <div className="flex-grow-1">
+          {/* Search + Filter */}
+          <div className="search-filter-box mb-5">
+            <form onSubmit={handleSearch} className="row g-2 align-items-center">
+              <div className="col-md-7">
+                <div className="search-input">
+                  <Search size={18} />
                   <input
                     type="text"
-                    className="form-control"
-                    placeholder="Search vehicles..."
+                    placeholder="Search by model, brand..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
+              </div>
+
+              <div className="col-md-3">
+                <select
+                  className="form-select"
+                  value={filterBrand}
+                  onChange={(e) => setFilterBrand(e.target.value)}
+                >
+                  <option value="">All Brands</option>
+                  <option value="Honda">Honda</option>
+                  <option value="Yamaha">Yamaha</option>
+                  <option value="Bajaj">Bajaj</option>
+                  <option value="TVS">TVS</option>
+                  <option value="Hero">Hero</option>
+                </select>
+              </div>
+
+              <div className="col-md-2 d-grid">
                 <Button type="submit" variant="primary">
-                  <Search size={18} />
+                  Search
                 </Button>
-              </form>
-            </div>
-            <div className="col-md-4">
-              <select
-                className="form-select"
-                value={filterBrand}
-                onChange={(e) => setFilterBrand(e.target.value)}
-              >
-                <option value="">All Brands</option>
-                <option value="Honda">Honda</option>
-                <option value="Yamaha">Yamaha</option>
-                <option value="Bajaj">Bajaj</option>
-                <option value="TVS">TVS</option>
-                <option value="Hero">Hero</option>
-              </select>
-            </div>
+              </div>
+            </form>
           </div>
 
+          {/* Vehicles Grid */}
           {vehicles.length === 0 ? (
             <div className="text-center py-5">
-              <Bike size={64} className="text-muted mb-3" />
-              <p className="text-muted">No vehicles found</p>
+              <Bike size={70} className="text-muted mb-3" />
+              <h5>No vehicles found</h5>
+              <p className="text-muted">
+                Try changing filters or search keywords
+              </p>
             </div>
           ) : (
             <div className="row g-4">
-              {vehicles.map((vehicle, index) => (
+              {vehicles.map((v, i) => (
                 <motion.div
-                  key={vehicle.id}
+                  key={v.id}
                   className="col-md-6 col-lg-4"
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  transition={{ delay: i * 0.05 }}
                 >
-                  <Card className="h-100">
-                    {vehicle.image && (
-                      <img
-                        src={vehicle.image}
-                        className="card-img-top"
-                        alt={vehicle.brand}
-                        style={{ height: '200px', objectFit: 'cover' }}
-                      />
-                    )}
+                  <Card className="vehicle-card h-100">
+                    <div className="image-wrap">
+                      {v.image ? (
+                        <img src={v.image} alt={v.model} />
+                      ) : (
+                        <Bike size={60} className="text-muted" />
+                      )}
+                      <span
+                        className={`stock-badge ${
+                          v.is_in_stock ? 'in' : 'out'
+                        }`}
+                      >
+                        {v.is_in_stock ? 'In Stock' : 'Out'}
+                      </span>
+                    </div>
+
                     <div className="card-body">
-                      <h5 className="card-title">
-                        {vehicle.brand} {vehicle.model}
+                      <h5 className="mb-1">
+                        {v.brand} {v.model}
                       </h5>
-                      <p className="card-text text-muted small">
-                        {vehicle.description?.substring(0, 100)}...
+
+                      <p className="text-muted small mb-2">
+                        {v.description?.slice(0, 80) || 'No description'}...
                       </p>
-                      <div className="d-flex justify-content-between align-items-center mb-3">
-                        <div>
-                          <strong className="text-primary d-flex align-items-center">
-                            <IndianRupee size={18} />
-                            {parseFloat(vehicle.price).toLocaleString()}
-                          </strong>
-                        </div>
-                        <span className={`badge ${vehicle.is_in_stock ? 'bg-success' : 'bg-danger'}`}>
-                          {vehicle.is_in_stock ? 'In Stock' : 'Out of Stock'}
-                        </span>
+
+                      <div className="price-row mb-3">
+                        <IndianRupee size={18} />
+                        {Number(v.price).toLocaleString()}
                       </div>
-                      <div className="d-grid gap-2">
-                        <Link
-                          to={`/vehicles/${vehicle.id}`}
-                          className="btn btn-primary"
-                        >
-                          View Details
-                        </Link>
-                      </div>
+
+                      <Link
+                        to={`/vehicles/${v.id}`}
+                        className="btn btn-primary w-100"
+                      >
+                        View Details
+                      </Link>
                     </div>
                   </Card>
                 </motion.div>
@@ -153,6 +166,88 @@ const Vehicles = () => {
           )}
         </motion.div>
       </div>
+
+      {/* ================= CUSTOM STYLES ================= */}
+      <style>{`
+        .vehicles-header h1 {
+          font-weight: 700;
+        }
+
+        .search-filter-box {
+          background: #f8f9fa;
+          padding: 16px;
+          border-radius: 12px;
+        }
+
+        .search-input {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: #fff;
+          padding: 10px 12px;
+          border-radius: 8px;
+          border: 1px solid #ddd;
+        }
+
+        .search-input input {
+          border: none;
+          outline: none;
+          width: 100%;
+        }
+
+        .vehicle-card {
+          border-radius: 14px;
+          overflow: hidden;
+          transition: all 0.3s ease;
+        }
+
+        .vehicle-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+        }
+
+        .image-wrap {
+          position: relative;
+          height: 200px;
+          background: #f1f1f1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .image-wrap img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .stock-badge {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          padding: 4px 10px;
+          font-size: 12px;
+          border-radius: 20px;
+          color: #fff;
+        }
+
+        .stock-badge.in {
+          background: #28a745;
+        }
+
+        .stock-badge.out {
+          background: #dc3545;
+        }
+
+        .price-row {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-weight: 600;
+          color: #0d6efd;
+          font-size: 18px;
+        }
+      `}</style>
     </Layout>
   );
 };

@@ -116,19 +116,11 @@ const Navbar = () => {
                 <>
                   <Link
                     to="/profile"
-                    className="nav-link icon-only"
+                    className={`nav-link icon-only ${isActive('/profile') ? 'active' : ''}`}
                     title="Profile"
                   >
                     <User size={20} />
                   </Link>
-
-                  <button
-                    className="nav-link icon-only text-danger border-0 bg-transparent"
-                    onClick={handleLogout}
-                    title="Logout"
-                  >
-                    <LogOut size={20} />
-                  </button>
                 </>
               ) : (
                 <div>

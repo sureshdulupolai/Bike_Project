@@ -34,7 +34,7 @@ class SaleViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return SaleCreateSerializer
         elif self.action == 'list':
-            return SaleListSerializer
+            return SaleSerializer
         return SaleSerializer
     
     def get_queryset(self):
