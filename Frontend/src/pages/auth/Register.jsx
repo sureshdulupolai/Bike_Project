@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { Bike, User, Mail, Phone, Lock, ArrowLeft } from 'lucide-react';
 import Button from '../../components/UI/Button';
 import PublicRoute from '../../components/PublicRoute';
-import emailjs from '@emailjs/browser';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Register = () => {
@@ -15,23 +14,30 @@ const Register = () => {
     password: '',
     password_confirm: '',
   });
+
   const [loading, setLoading] = useState(false);
+  const [alert, setAlert] = useState({ type: '', message: '' });
 
   const { register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 🔙 Smart back handler
+  // 🔙 Back handler
   const handleBack = () => {
-    const from = location.state?.from;
-    navigate(from || '/');
+    navigate(location.state?.from || '/');
+  };
+
+  // 🔔 Custom alert helper
+  const showAlert = (type, message) => {
+    setAlert({ type, message });
+    setTimeout(() => setAlert({ type: '', message: '' }), 3000);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (formData.password !== formData.password_confirm) {
-      alert('Passwords do not match!');
+      showAlert('error', 'Passwords do not match');
       return;
     }
 
@@ -40,39 +46,48 @@ const Register = () => {
     try {
       const result = await register(formData);
 
-      if (result.success) {
-        const templateParams = {
-          name: formData.name,
-          to_email: formData.email,
-          message: `Hello ${formData.name}, your OTP is ${result.otp}`,
-          time: new Date().toLocaleString(),
-        };
-
-        await emailjs.send(
-          'service_r8cniy2',
-          'template_exgvesr',
-          templateParams,
-          'BwBgnnEEONzpzoNJG'
-        );
-
-        localStorage.setItem(
-          'pending_verification_email',
-          formData.email
-        );
-
-        alert('Registration successful! OTP sent to your email.');
-        navigate('/verify-otp');
+      if (!result || result.success !== true) {
+        throw new Error(result?.message || 'Registration failed');
       }
-    } catch (error) {
-      console.error(error);
-      alert(
-        error.response?.data?.email ||
-          error.response?.data?.mobile ||
-          'Registration failed. Please try again.'
-      );
-    }
 
-    setLoading(false);
+      // Save pending verification email
+      localStorage.setItem('pending_verification_email', formData.email);
+
+      // ✅ Send OTP via EmailJS
+      await emailjs.send(
+        "service_5bm58np",
+        "template_1v2c0p9",
+        {
+          to_email: formData.email,
+          name: formData.name,
+          message: `Your OTP is: ${result.otp}`,  // ← use backend OTP
+        },
+        "wtfODQiMYk4i24OWU"
+      );
+
+      showAlert(
+        'success',
+        'OTP sent successfully. Please check your email.'
+      );
+
+      setTimeout(() => navigate('/verify-otp'), 1200);
+
+    } catch (error) {
+        console.error(error.response?.data || error);
+
+        let message = 'Registration failed. Try again.';
+
+        if (error.response && error.response.data) {
+          // Flatten backend validation errors
+          message = Object.values(error.response.data)
+            .flat()
+            .join(' ');
+        }
+
+        showAlert('error', message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -87,7 +102,7 @@ const Register = () => {
                 transition={{ duration: 0.5 }}
               >
                 <div className="card shadow-lg border-0 position-relative">
-                  
+
                   {/* 🔙 Back Button */}
                   <button
                     onClick={handleBack}
@@ -110,6 +125,19 @@ const Register = () => {
                       <h2 className="fw-bold">Create Account</h2>
                       <p className="text-muted">Join us today!</p>
                     </div>
+
+                    {/* 🔔 Alert */}
+                    {alert.message && (
+                      <div
+                        className={`alert ${
+                          alert.type === 'success'
+                            ? 'alert-success'
+                            : 'alert-danger'
+                        } text-center`}
+                      >
+                        {alert.message}
+                      </div>
+                    )}
 
                     <form onSubmit={handleSubmit}>
                       <div className="mb-3">

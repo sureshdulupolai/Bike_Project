@@ -11,7 +11,8 @@ from .views import (
     LogoutView,
     UserProfileView,
     UserViewSet,
-    AdminRegisterView
+    AdminRegisterView,
+    ResendOTPView,
 )
 
 router = DefaultRouter()
@@ -22,6 +23,7 @@ urlpatterns = [
     path('admin/register/', AdminRegisterView.as_view()),
     path('login/', LoginView.as_view(), name='login'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path("otp/resend/", ResendOTPView.as_view()),
     path('verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('me/', UserProfileView.as_view(), name='me'),

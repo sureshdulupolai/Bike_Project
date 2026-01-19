@@ -12,6 +12,9 @@ from .serializers import (
     UserProfileSerializer
 )
 from .permissions import IsAdmin
+from django.utils import timezone
+from datetime import timedelta
+import random
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -80,6 +83,59 @@ class LoginView(generics.GenericAPIView):
             "tokens": {"refresh": str(refresh), "access": str(refresh.access_token)}
         }, status=status.HTTP_200_OK)
 
+class ResendOTPView(generics.GenericAPIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get("email")
+
+        if not email:
+            return Response(
+                {"success": False, "error": "Email is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {"success": False, "error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # ⏱️ cooldown check (1 minute)
+        last_otp = OTP.objects.filter(
+            user=user,
+            purpose="email_verification",
+            is_used=False
+        ).order_by("-created_at").first()
+
+        if last_otp and timezone.now() < last_otp.created_at + timedelta(minutes=1):
+            return Response({
+                "success": False,
+                "error": "Please wait 1 minute before resending OTP"
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # generate new OTP
+        otp_code = str(random.randint(100000, 999999))
+        expires_at = timezone.now() + timedelta(minutes=1)
+
+        OTP.objects.create(
+            user=user,
+            otp_code=otp_code,
+            purpose="email_verification",
+            expires_at=expires_at
+        )
+
+        user.otp = otp_code
+        user.otp_created_at = timezone.now()
+        user.save()
+
+        return Response({
+            "success": True,
+            "message": "OTP resent successfully",
+            "otp": otp_code  # 👈 frontend emailjs ke liye
+        }, status=status.HTTP_200_OK)
 
 class VerifyOTPView(generics.GenericAPIView):
     permission_classes = [AllowAny]

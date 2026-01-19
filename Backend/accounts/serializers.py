@@ -8,9 +8,15 @@ from datetime import timedelta
 import random
 from .models import User, OTP
 
-
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    """Serializer for user registration (Customer & Admin)"""
+    """
+    Serializer for user registration (Customer & Admin)
+    Handles:
+        - Password validation
+        - Duplicate unverified user cleanup
+        - OTP generation for customers
+        - Admin vs Customer creation logic
+    """
     
     password = serializers.CharField(
         write_only=True,
@@ -36,65 +42,70 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Validate password confirmation"""
         if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError({
-                "password": "Password fields didn't match."
-            })
+            raise serializers.ValidationError({"password": "Password fields didn't match."})
         return attrs
 
     def validate_email(self, value):
-        """Validate email uniqueness"""
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
+        """Only block if a verified user exists"""
+        if User.objects.filter(email=value, is_verified=True).exists():
+            raise serializers.ValidationError("A verified user with this email already exists.")
         return value
 
     def validate_mobile(self, value):
-        """Validate mobile uniqueness"""
-        if User.objects.filter(mobile=value).exists():
-            raise serializers.ValidationError("A user with this mobile number already exists.")
+        if User.objects.filter(mobile=value, is_verified=True).exists():
+            raise serializers.ValidationError("A verified user with this mobile number already exists.")
         return value
 
     def create(self, validated_data):
         validated_data.pop('password_confirm')
         password = validated_data.pop('password')
-        
-        # Get admin flag from context if available
-        admin = self.context.get('admin', False)
 
-        # Remove admin key if exists (from serializer)
+        admin = self.context.get('admin', False)
         validated_data.pop('admin', None)
 
-        # Backend determines role, staff, superuser
+        email = validated_data['email']
+        mobile = validated_data['mobile']
+
+        # ✅ Delete unverified duplicates and their OTPs
+        unverified_users = User.objects.filter(
+            (models.Q(email=email) | models.Q(mobile=mobile)),
+            is_verified=False
+        )
+        for user in unverified_users:
+            OTP.objects.filter(user=user).delete()
+            user.delete()
+
         if admin:
-            # Create superuser for admin
             validated_data['role'] = 'admin'
             validated_data['is_staff'] = True
             validated_data['is_superuser'] = True
             validated_data['is_verified'] = True
             user = User.objects.create_superuser(password=password, **validated_data)
         else:
-            # Create regular user for customer
             validated_data['role'] = 'customer'
             validated_data['is_staff'] = False
             validated_data['is_superuser'] = False
             validated_data['is_verified'] = False
+
             user = User.objects.create_user(password=password, **validated_data)
-            
-            # Customer OTP logic
+
+            # Generate OTP
             otp_code = str(random.randint(100000, 999999))
-            expires_at = timezone.now() + timedelta(minutes=10)
-            
+            expires_at = timezone.now() + timedelta(minutes=1)
+
             OTP.objects.create(
                 user=user,
                 otp_code=otp_code,
                 purpose='email_verification',
                 expires_at=expires_at
             )
-            
+
             user.otp = otp_code
             user.otp_created_at = timezone.now()
             user.save()
-        
+
         return user
+
 
 class UserLoginSerializer(serializers.Serializer):
     """Serializer for user login"""
