@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bike, User, Mail, Phone, Lock } from 'lucide-react';
+import { Bike, User, Mail, Phone, Lock, ArrowLeft } from 'lucide-react';
 import Button from '../../components/UI/Button';
 import PublicRoute from '../../components/PublicRoute';
-import emailjs from '@emailjs/browser'; // ✅ EmailJS import
+import emailjs from '@emailjs/browser';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Register = () => {
@@ -16,8 +16,16 @@ const Register = () => {
     password_confirm: '',
   });
   const [loading, setLoading] = useState(false);
+
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // 🔙 Smart back handler
+  const handleBack = () => {
+    const from = location.state?.from;
+    navigate(from || '/');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,11 +38,9 @@ const Register = () => {
     setLoading(true);
 
     try {
-      // Register the user via backend
       const result = await register(formData);
 
       if (result.success) {
-        // Send OTP via EmailJS
         const templateParams = {
           name: formData.name,
           to_email: formData.email,
@@ -43,14 +49,16 @@ const Register = () => {
         };
 
         await emailjs.send(
-          "service_r8cniy2",
-          "template_exgvesr",
+          'service_r8cniy2',
+          'template_exgvesr',
           templateParams,
-          "BwBgnnEEONzpzoNJG"
+          'BwBgnnEEONzpzoNJG'
         );
 
-        // Store email for OTP verification
-        localStorage.setItem('pending_verification_email', formData.email);
+        localStorage.setItem(
+          'pending_verification_email',
+          formData.email
+        );
 
         alert('Registration successful! OTP sent to your email.');
         navigate('/verify-otp');
@@ -59,15 +67,14 @@ const Register = () => {
       console.error(error);
       alert(
         error.response?.data?.email ||
-        error.response?.data?.mobile ||
-        'Registration failed. Please try again.'
+          error.response?.data?.mobile ||
+          'Registration failed. Please try again.'
       );
     }
 
     setLoading(false);
   };
 
-  
   return (
     <PublicRoute>
       <div className="min-vh-100 d-flex align-items-center bg-light py-5">
@@ -79,7 +86,24 @@ const Register = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <div className="card shadow-lg border-0">
+                <div className="card shadow-lg border-0 position-relative">
+                  
+                  {/* 🔙 Back Button */}
+                  <button
+                    onClick={handleBack}
+                    className="btn btn-light position-absolute d-flex align-items-center justify-content-center"
+                    style={{
+                      top: '15px',
+                      left: '15px',
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '50%',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                    }}
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+
                   <div className="card-body p-5">
                     <div className="text-center mb-4">
                       <Bike size={48} className="text-primary mb-3" />
@@ -89,77 +113,88 @@ const Register = () => {
 
                     <form onSubmit={handleSubmit}>
                       <div className="mb-3">
-                        <label htmlFor="name" className="form-label">
+                        <label className="form-label">
                           <User size={16} className="me-1" />
                           Full Name
                         </label>
                         <input
                           type="text"
                           className="form-control"
-                          id="name"
                           value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, name: e.target.value })
+                          }
                           required
                         />
                       </div>
 
                       <div className="mb-3">
-                        <label htmlFor="email" className="form-label">
+                        <label className="form-label">
                           <Mail size={16} className="me-1" />
                           Email Address
                         </label>
                         <input
                           type="email"
                           className="form-control"
-                          id="email"
                           value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, email: e.target.value })
+                          }
                           required
                         />
                       </div>
 
                       <div className="mb-3">
-                        <label htmlFor="mobile" className="form-label">
+                        <label className="form-label">
                           <Phone size={16} className="me-1" />
                           Mobile Number
                         </label>
                         <input
                           type="tel"
                           className="form-control"
-                          id="mobile"
                           value={formData.mobile}
-                          onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, mobile: e.target.value })
+                          }
                           required
                         />
                       </div>
 
                       <div className="mb-3">
-                        <label htmlFor="password" className="form-label">
+                        <label className="form-label">
                           <Lock size={16} className="me-1" />
                           Password
                         </label>
                         <input
                           type="password"
                           className="form-control"
-                          id="password"
                           value={formData.password}
-                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              password: e.target.value,
+                            })
+                          }
                           required
                           minLength={8}
                         />
                       </div>
 
                       <div className="mb-4">
-                        <label htmlFor="password_confirm" className="form-label">
+                        <label className="form-label">
                           <Lock size={16} className="me-1" />
                           Confirm Password
                         </label>
                         <input
                           type="password"
                           className="form-control"
-                          id="password_confirm"
                           value={formData.password_confirm}
-                          onChange={(e) => setFormData({ ...formData, password_confirm: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              password_confirm: e.target.value,
+                            })
+                          }
                           required
                         />
                       </div>
@@ -177,7 +212,10 @@ const Register = () => {
                     <div className="text-center">
                       <p className="mb-0">
                         Already have an account?{' '}
-                        <Link to="/login" className="text-primary text-decoration-none">
+                        <Link
+                          to="/login"
+                          className="text-primary text-decoration-none"
+                        >
                           Login here
                         </Link>
                       </p>
