@@ -23,31 +23,27 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data, context={'admin': False})
+        serializer = self.get_serializer(
+            data=request.data,
+            context={'user_type': 'customer'}
+        )
+
         try:
             serializer.is_valid(raise_exception=True)
-            # Wrap save in a transaction to surface IntegrityError for unique constraints
             with transaction.atomic():
-                user = serializer.save()  # customer
+                user = serializer.save()
 
         except IntegrityError:
             return Response({
                 "success": False,
-                "error": "A user with this email or mobile already exists. If you haven't verified, try resending OTP or use a different email/mobile."
-            }, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            # serializer.is_valid will already raise ValidationError for known issues.
-            # Catch-all for unexpected exceptions.
-            return Response({
-                "success": False,
-                "error": str(e)
+                "error": "Email or mobile already exists. Try verifying or use different details."
             }, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({
             "success": True,
-            "message": "User registered successfully. OTP generated for email verification.",
+            "message": "Customer registered successfully. OTP sent.",
             "user": UserSerializer(user).data,
-            "otp": user.otp  # Only for frontend/email testing
+            "otp": user.otp  # ⚠️ dev/testing only
         }, status=status.HTTP_201_CREATED)
 
 
@@ -56,23 +52,41 @@ class AdminRegisterView(generics.CreateAPIView):
     permission_classes = [AllowAny]
     serializer_class = UserRegistrationSerializer
 
-    # AdminRegisterView
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data, context={'admin': True})
-        if not serializer.is_valid():
-            return Response({
-                "success": False,
-                "errors": serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(
+            data=request.data,
+            context={'user_type': 'admin'}
+        )
+
+        serializer.is_valid(raise_exception=True)
         user = serializer.save()
+
         return Response({
             "success": True,
-            "message": "Admin registered successfully. You can now login to Django admin.",
-            "user": UserSerializer(user).data
+            "message": "Admin registered successfully. OTP sent for verification.",
+            "user": UserSerializer(user).data,
+            "otp": user.otp  # dev/testing
         }, status=status.HTTP_201_CREATED)
 
+class DeveloperRegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    permission_classes = [AllowAny]  # later restrict
+    serializer_class = UserRegistrationSerializer
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(
+            data=request.data,
+            context={'user_type': 'developer'}
+        )
 
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        return Response({
+            "success": True,
+            "message": "Developer registered successfully. You can access Django admin.",
+            "user": UserSerializer(user).data
+        }, status=status.HTTP_201_CREATED)
 
 class LoginView(generics.GenericAPIView):
     permission_classes = [AllowAny]

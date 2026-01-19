@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import AdminRegister from './pages/auth/adminRegister';
+import DeveloperRegister from './pages/auth/DeveloperRegister';
 import VerifyOTP from './pages/auth/VerifyOTP';
 import Vehicles from './pages/Vehicles';
 import VehicleDetail from './pages/VehicleDetail';
@@ -33,6 +34,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/register/admin" element={<AdminRegister />} />
+        <Route path="/register/developer" element={<DeveloperRegister />} />
         <Route path="/verify-otp" element={<VerifyOTP />} />
         <Route path="/vehicles" element={<Vehicles />} />
         <Route path="/vehicles/:id" element={<VehicleDetail />} />

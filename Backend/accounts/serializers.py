@@ -37,7 +37,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['id', 'name', 'email', 'mobile', 'password', 'password_confirm', 'role']
+        fields = ['id', 'name', 'email', 'mobile', 'password', 'password_confirm']
         extra_kwargs = {
             'name': {'required': True},
             # email/mobile declared above
@@ -64,13 +64,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         validated_data.pop('password_confirm')
         password = validated_data.pop('password')
 
-        admin = self.context.get('admin', False)
-        validated_data.pop('admin', None)
+        user_type = self.context.get('user_type', 'customer')
 
-        email = validated_data['email']
-        mobile = validated_data['mobile']
+        email = validated_data.pop('email')   # ✅ POP IT
+        mobile = validated_data.pop('mobile') # ✅ POP IT
 
-        # Delete any existing unverified users that match email or mobile (cleanup duplicates)
+        # Cleanup unverified duplicates
         with transaction.atomic():
             unverified_users = User.objects.filter(
                 Q(email=email) | Q(mobile=mobile),
@@ -80,34 +79,86 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
                 OTP.objects.filter(user__in=unverified_users).delete()
                 unverified_users.delete()
 
-        if admin:
-            validated_data['role'] = 'admin'
-            validated_data['is_staff'] = True
-            validated_data['is_superuser'] = True
-            validated_data['is_verified'] = True
-            user = User.objects.create_superuser(password=password, **validated_data)
-        else:
-            validated_data['role'] = 'customer'
-            validated_data['is_staff'] = False
-            validated_data['is_superuser'] = False
-            validated_data['is_verified'] = False
+        # =============================
+        # DEVELOPER (DJANGO ADMIN USER)
+        # =============================
+        if user_type == 'developer':
+            validated_data.update({
+                'role': 'developer',
+                'is_staff': True,
+                'is_superuser': True,
+                'is_verified': True,
+            })
 
-            user = User.objects.create_user(password=password, **validated_data)
+            user = User.objects.create_superuser(
+                email=email,
+                password=password,
+                mobile=mobile,
+                **validated_data
+            )
+            return user
 
-            # Generate OTP for new customer
+        # =============================
+        # ADMIN (NO ADMIN PANEL)
+        # =============================
+        if user_type == 'admin':
+            validated_data.update({
+                'role': 'admin',
+                'is_staff': False,
+                'is_superuser': False,
+                'is_verified': False,
+            })
+
+            user = User.objects.create_user(
+                email=email,
+                password=password,
+                mobile=mobile,
+                **validated_data
+            )
+
+            # OTP for admin
             otp_code = str(random.randint(100000, 999999))
-            expires_at = timezone.now() + timedelta(minutes=1)
-
             OTP.objects.create(
                 user=user,
                 otp_code=otp_code,
                 purpose='email_verification',
-                expires_at=expires_at
+                expires_at=timezone.now() + timedelta(minutes=5)
             )
 
             user.otp = otp_code
             user.otp_created_at = timezone.now()
             user.save()
+
+            return user
+
+        # =============================
+        # CUSTOMER (DEFAULT)
+        # =============================
+        validated_data.update({
+            'role': 'customer',
+            'is_staff': False,
+            'is_superuser': False,
+            'is_verified': False,
+        })
+
+        user = User.objects.create_user(
+            email=email,
+            password=password,
+            mobile=mobile,
+            **validated_data
+        )
+
+        otp_code = str(random.randint(100000, 999999))
+        OTP.objects.create(
+            user=user,
+            otp_code=otp_code,
+            purpose='email_verification',
+            expires_at=timezone.now() + timedelta(minutes=5)
+        )
+
+        user.otp = otp_code
+        user.otp_created_at = timezone.now()
+        user.save()
 
         return user
 
