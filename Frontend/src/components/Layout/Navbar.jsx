@@ -64,7 +64,7 @@ const Navbar = () => {
 
   /* ACTIVE ICON — NO BACKGROUND */
   .icon-only.active {
-    color: #ffffff !important;
+    color: #ffc107 !important;
   }
 
   .icon-only.active svg {
@@ -79,7 +79,7 @@ const Navbar = () => {
         <div className="container-fluid">
           {/* BRAND */}
           <Link className="navbar-brand d-flex align-items-center" to="/">
-            <Bike className="me-2" size={28} />
+            <Bike className="me-2" size={28} color="#ffc107" />
             <span className="fw-bold">BikeHub</span>
           </Link>
 
