@@ -22,7 +22,7 @@ class IsCustomer(permissions.BasePermission):
         return (
             request.user and
             request.user.is_authenticated and
-            request.user.role == 'customer'
+            request.user.role in ['customer', 'developer']
         )
 
 

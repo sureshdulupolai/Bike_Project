@@ -91,7 +91,7 @@ class SaleViewSet(viewsets.ModelViewSet):
         sale = self.get_object()
         
         # Customers can only cancel their own pending sales
-        if request.user.role == 'customer' and sale.customer != request.user:
+        if request.user.role in ['customer', 'developer'] and sale.customer != request.user:
             return Response({
                 'error': 'You can only cancel your own sales.'
             }, status=status.HTTP_403_FORBIDDEN)
