@@ -1,0 +1,44 @@
+🔹 PROMPT-1: Chapter 5.1 (Implementation Approach)
+
+I have a BikeHub project using React.js frontend and Django REST Framework backend.
+Write Chapter 5.1 Implementation Approach for my college project report.
+Use Incremental Development Model.
+Explain frontend, backend, authentication, database, and API communication.
+Keep language simple and formal for BSc IT project.
+
+🔹 PROMPT-2: Django REST APIs (Implementation)
+I am building a BikeHub project using Django REST Framework.
+Create implementation code for:
+1. User Registration API
+2. User Login API using JWT
+3. Bike Service Booking API
+Include serializer, views, urls.
+Explain briefly for project documentation.
+
+
+🔹 PROMPT-3: React Implementation
+I am building a BikeHub frontend using React.
+Create implementation code for:
+1. Register page
+2. Login page
+3. Dashboard page
+Use Axios for API calls.
+Explain how frontend communicates with Django REST API.
+
+
+🔹 PROMPT-4: Testing (Chapter 5.3)
+Write Chapter 5.3 Testing Approaches for my BikeHub project.
+Include:
+1. Unit Testing
+2. Integration Testing
+3. Beta Testing
+Explain testing of APIs and React UI.
+Make it suitable for final year project report.
+
+🔹 PROMPT-5: Test Case Table
+Create test case tables for BikeHub project:
+- Login
+- Registration
+- Book Bike Service
+- Admin Approval
+Include Test Case ID, Description, Expected Result.
