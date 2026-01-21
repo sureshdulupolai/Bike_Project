@@ -23,10 +23,10 @@ class VehicleViewSet(viewsets.ModelViewSet):
     PATCH /api/inventory/vehicles/{id}/ - Partial update (Admin only)
     DELETE /api/inventory/vehicles/{id}/ - Delete vehicle (Admin only)
     """
-    queryset = Vehicle.objects.filter(is_active=True)
+    queryset = Vehicle.objects.all()
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['brand', 'is_active']
+    filterset_fields = ['brand']
     search_fields = ['brand', 'model', 'description']
     ordering_fields = ['price', 'created_at', 'stock_qty']
     ordering = ['-created_at']
@@ -46,14 +46,8 @@ class VehicleViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated(), IsAdmin()]
     
     def get_queryset(self):
-        """Filter queryset based on user role"""
-        queryset = Vehicle.objects.all()
-        
-        # Customers see only active vehicles
-        if not self.request.user.is_authenticated or self.request.user.role == 'customer':
-            queryset = queryset.filter(is_active=True)
-        
-        return queryset
+        """Return all vehicles (deleted ones are removed from database)"""
+        return Vehicle.objects.all()
     
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAdmin])
     def update_stock(self, request, pk=None):
@@ -97,10 +91,9 @@ class VehicleViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_200_OK)
     
     def destroy(self, request, *args, **kwargs):
-        """Soft delete - set is_active to False"""
+        """Hard delete - completely remove vehicle from database"""
         vehicle = self.get_object()
-        vehicle.is_active = False
-        vehicle.save()
+        vehicle.delete()
         return Response({
-            'message': 'Vehicle deactivated successfully.'
-        }, status=status.HTTP_200_OK)
+            'message': 'Vehicle deleted successfully.'
+        }, status=status.HTTP_204_NO_CONTENT)

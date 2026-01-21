@@ -27,7 +27,7 @@ const Vehicles = () => {
 
   const fetchVehicles = async () => {
     try {
-      const res = await vehicleService.getAll();
+      const res = await vehicleService.getAll({ is_active: true });
       setVehicles(res.results || []);
     } catch (e) {
       console.error(e);
@@ -39,11 +39,12 @@ const Vehicles = () => {
   const deleteVehicle = async () => {
     try {
       await vehicleService.delete(confirmDelete.id);
-      toast.success('Vehicle deleted');
+      toast.success('Vehicle deleted successfully');
       setConfirmDelete(null);
       fetchVehicles();
-    } catch {
-      toast.error('Delete failed');
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error(error.response?.data?.message || 'Delete failed');
     }
   };
 

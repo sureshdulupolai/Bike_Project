@@ -3,8 +3,10 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Bike, User, Mail, Phone, Lock, ArrowLeft } from 'lucide-react';
 import Button from '../../components/UI/Button';
+import Notification from '../../components/UI/Notification';
 import PublicRoute from '../../components/PublicRoute';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../hooks/useNotification';
 import emailjs from '@emailjs/browser';
 
 const Register = () => {
@@ -17,7 +19,7 @@ const Register = () => {
   });
 
   const [loading, setLoading] = useState(false);
-  const [alert, setAlert] = useState({ type: '', message: '' });
+  const { notification, showNotification } = useNotification();
 
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -28,17 +30,11 @@ const Register = () => {
     navigate(location.state?.from || '/');
   };
 
-  // 🔔 Custom alert helper
-  const showAlert = (type, message) => {
-    setAlert({ type, message });
-    setTimeout(() => setAlert({ type: '', message: '' }), 3000);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (formData.password !== formData.password_confirm) {
-      showAlert('error', 'Passwords do not match');
+      showNotification('error', 'Passwords do not match');
       return;
     }
 
@@ -69,7 +65,7 @@ const Register = () => {
         );
       }
 
-      showAlert(
+      showNotification(
         'success',
         'Registration successful! Please verify your email with OTP.'
       );
@@ -96,7 +92,7 @@ const Register = () => {
           }
         }
 
-        showAlert('error', message);
+        showNotification('error', message);
     } finally {
       setLoading(false);
     }
@@ -138,18 +134,11 @@ const Register = () => {
                       <p className="text-muted">Join us today!</p>
                     </div>
 
-                    {/* 🔔 Alert */}
-                    {alert.message && (
-                      <div
-                        className={`alert ${
-                          alert.type === 'success'
-                            ? 'alert-success'
-                            : 'alert-danger'
-                        } text-center`}
-                      >
-                        {alert.message}
-                      </div>
-                    )}
+                    {/* 🔔 Notification */}
+                    <Notification
+                      type={notification.type}
+                      message={notification.message}
+                    />
 
                     <form onSubmit={handleSubmit}>
                       <div className="mb-3">

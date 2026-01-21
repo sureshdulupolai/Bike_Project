@@ -3,7 +3,9 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Bike, User, Mail, Phone, Lock, ArrowLeft } from 'lucide-react';
 import Button from '../../components/UI/Button';
+import Notification from '../../components/UI/Notification';
 import PublicRoute from '../../components/PublicRoute';
+import { useNotification } from '../../hooks/useNotification';
 import { API_BASE_URL } from '../../config/api';
 
 const AdminRegister = () => {
@@ -16,7 +18,7 @@ const AdminRegister = () => {
   });
 
   const [loading, setLoading] = useState(false);
-  const [alert, setAlert] = useState({ type: '', message: '' });
+  const { notification, showNotification } = useNotification();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,17 +28,11 @@ const AdminRegister = () => {
     navigate(location.state?.from || '/');
   };
 
-  // 🔔 Custom alert helper (same behavior)
-  const showAlert = (type, message) => {
-    setAlert({ type, message });
-    setTimeout(() => setAlert({ type: '', message: '' }), 3000);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (formData.password !== formData.password_confirm) {
-      showAlert('error', 'Passwords do not match');
+      showNotification('error', 'Passwords do not match');
       return;
     }
 
@@ -56,13 +52,13 @@ const AdminRegister = () => {
           data?.error ||
           Object.values(data || {}).flat().join(' ') ||
           'Registration failed';
-        showAlert('error', message);
+        showNotification('error', message);
         return;
       }
 
       localStorage.setItem('pending_verification_email', formData.email);
 
-      showAlert(
+      showNotification(
         'success',
         'Admin registered successfully! Please verify OTP.'
       );
@@ -70,7 +66,7 @@ const AdminRegister = () => {
       setTimeout(() => navigate('/verify-otp'), 1200);
 
     } catch (err) {
-      showAlert('error', 'Something went wrong. Please try again.');
+      showNotification('error', 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -114,18 +110,11 @@ const AdminRegister = () => {
                       </p>
                     </div>
 
-                    {/* 🔔 Alert (same position & style) */}
-                    {alert.message && (
-                      <div
-                        className={`alert ${
-                          alert.type === 'success'
-                            ? 'alert-success'
-                            : 'alert-danger'
-                        } text-center`}
-                      >
-                        {alert.message}
-                      </div>
-                    )}
+                    {/* 🔔 Notification */}
+                    <Notification
+                      type={notification.type}
+                      message={notification.message}
+                    />
 
                     <form onSubmit={handleSubmit}>
                       <div className="mb-3">

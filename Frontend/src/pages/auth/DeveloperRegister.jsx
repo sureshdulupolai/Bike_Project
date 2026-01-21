@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, CheckCircle, AlertTriangle, Code } from 'lucide-react';
+import { ShieldCheck, Code } from 'lucide-react';
 import Button from '../../components/UI/Button';
+import Notification from '../../components/UI/Notification';
 import PublicRoute from '../../components/PublicRoute';
+import { useNotification } from '../../hooks/useNotification';
 import { API_BASE_URL } from '../../config/api';
 
 const DEVELOPER_KEY = 'DEV-2026-SECURE';
@@ -19,24 +21,19 @@ const DeveloperRegister = () => {
   });
 
   const [verified, setVerified] = useState(false);
-  const [alert, setAlert] = useState({ type: '', message: '' });
+  const { notification, showNotification } = useNotification();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  const showAlert = (type, message) => {
-    setAlert({ type, message });
-    setTimeout(() => setAlert({ type: '', message: '' }), 3500);
-  };
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const verifyKey = () => {
     if (formData.security_key !== DEVELOPER_KEY) {
-      showAlert('error', 'Invalid developer security key');
+      showNotification('error', 'Invalid developer security key');
       return;
     }
-    showAlert('success', 'Developer access verified');
+    showNotification('success', 'Developer access verified');
     setVerified(true);
   };
 
@@ -44,7 +41,7 @@ const DeveloperRegister = () => {
     e.preventDefault();
 
     if (formData.password !== formData.password_confirm) {
-      showAlert('error', 'Passwords do not match');
+      showNotification('error', 'Passwords do not match');
       return;
     }
 
@@ -60,15 +57,15 @@ const DeveloperRegister = () => {
       const data = await res.json();
 
       if (!res.ok) {
-        showAlert('error', data?.error || 'Registration failed');
+        showNotification('error', data?.error || 'Registration failed');
         return;
       }
 
-      showAlert('success', 'Developer registered successfully');
+      showNotification('success', 'Developer registered successfully');
       setTimeout(() => navigate('/login'), 1500);
 
     } catch {
-      showAlert('error', 'Something went wrong');
+      showNotification('error', 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -92,28 +89,12 @@ const DeveloperRegister = () => {
                       </p>
                     </div>
 
-                    {/* 🔔 Custom Alert */}
-                    <AnimatePresence>
-                      {alert.message && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          className={`alert d-flex align-items-center gap-2 ${
-                            alert.type === 'success'
-                              ? 'alert-success'
-                              : 'alert-danger'
-                          }`}
-                        >
-                          {alert.type === 'success' ? (
-                            <CheckCircle size={18} />
-                          ) : (
-                            <AlertTriangle size={18} />
-                          )}
-                          {alert.message}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    {/* 🔔 Custom Notification */}
+                    <Notification
+                      type={notification.type}
+                      message={notification.message}
+                      duration={4000}
+                    />
 
                     {!verified && (
                       <div className="mb-4">
