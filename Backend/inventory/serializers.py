@@ -69,5 +69,5 @@ class VehicleListSerializer(serializers.ModelSerializer):
         model = Vehicle
         fields = [
             'id', 'brand', 'model', 'price', 'stock_qty',
-            'is_in_stock', 'is_active', 'image'
+            'description', 'is_in_stock', 'is_active', 'image'
         ]
