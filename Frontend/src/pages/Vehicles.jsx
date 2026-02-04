@@ -13,10 +13,11 @@ const Vehicles = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
+  const [priceRange, setPriceRange] = useState('');
 
   useEffect(() => {
     fetchVehicles();
-  }, [filterBrand]);
+  }, [filterBrand, priceRange]);
 
   const fetchVehicles = async () => {
     try {
@@ -24,6 +25,16 @@ const Vehicles = () => {
       const params = {};
       if (filterBrand) params.brand = filterBrand;
       if (searchTerm) params.search = searchTerm;
+
+      if (priceRange) {
+        if (priceRange === '200000+') {
+          params.min_price = 200000;
+        } else {
+          const [min, max] = priceRange.split('-');
+          params.min_price = min;
+          params.max_price = max;
+        }
+      }
 
       const res = await vehicleService.getAll(params);
       setVehicles(res.results || []);
@@ -95,6 +106,20 @@ const Vehicles = () => {
                 </select>
               </div>
 
+              <div className="col-md-3">
+                <select
+                  className="form-select"
+                  value={priceRange}
+                  onChange={(e) => setPriceRange(e.target.value)}
+                >
+                  <option value="">All Prices</option>
+                  <option value="100000-120000">₹1,00,000 – ₹1,20,000</option>
+                  <option value="120000-150000">₹1,20,000 – ₹1,50,000</option>
+                  <option value="150000-200000">₹1,50,000 – ₹2,00,000</option>
+                  <option value="200000+">₹2,00,000+</option>
+                </select>
+              </div>
+
               <div className="col-md-2 d-grid">
                 <Button type="submit" variant="primary">
                   Search
@@ -130,9 +155,8 @@ const Vehicles = () => {
                         <Bike size={60} className="text-muted" />
                       )}
                       <span
-                        className={`stock-badge ${
-                          v.is_in_stock ? 'in' : 'out'
-                        }`}
+                        className={`stock-badge ${v.is_in_stock ? 'in' : 'out'
+                          }`}
                       >
                         {v.is_in_stock ? 'In Stock' : 'Out'}
                       </span>
@@ -144,7 +168,9 @@ const Vehicles = () => {
                       </h5>
 
                       <p className="text-muted small mb-2">
-                        {v.description?.slice(0, 80) || 'No description'}...
+                        {v.description && v.description.trim()
+                          ? `${v.description.slice(0, 80)}...`
+                          : 'No description'}
                       </p>
 
                       <div className="price-row mb-3">

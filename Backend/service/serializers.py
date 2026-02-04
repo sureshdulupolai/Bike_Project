@@ -50,6 +50,8 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         return value
 
 
+from sales.models import Sale
+
 class ServiceRequestCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating a service request"""
     class Meta:
@@ -60,10 +62,18 @@ class ServiceRequestCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Validate service request creation"""
         vehicle = attrs.get('vehicle')
+        user = self.context['request'].user
         
         if not vehicle.is_active:
             raise serializers.ValidationError({
                 'vehicle': 'This vehicle is not available.'
+            })
+            
+        # Check if user has purchased this vehicle
+        # We assume 'verified' status means completed purchase based on Sale model
+        if not Sale.objects.filter(customer=user, vehicle=vehicle, status='verified').exists():
+            raise serializers.ValidationError({
+                'vehicle': 'You can only request service for vehicles you have purchased and received.'
             })
         
         return attrs

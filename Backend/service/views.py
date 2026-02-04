@@ -15,6 +15,8 @@ from .serializers import (
     ServiceRequestListSerializer,
     ServiceRequestUpdateSerializer
 )
+from inventory.serializers import VehicleListSerializer
+from sales.models import Sale
 from accounts.permissions import IsAdmin, IsCustomer
 
 
@@ -133,6 +135,22 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             'results': serializer.data
         }, status=status.HTTP_200_OK)
     
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated, IsCustomer])
+    def eligible_vehicles(self, request):
+        """
+        GET /api/service/requests/eligible_vehicles/
+        Get vehicles eligible for service (Purchased by customer)
+        """
+        # Get all vehicles where user has a verified sale
+        sales = Sale.objects.filter(customer=request.user, status='verified').select_related('vehicle')
+        vehicles = [sale.vehicle for sale in sales]
+        
+        serializer = VehicleListSerializer(vehicles, many=True)
+        return Response({
+            'count': len(vehicles),
+            'results': serializer.data
+        }, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated, IsCustomer])
     def cancel(self, request, pk=None):
         """
